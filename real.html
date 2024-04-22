@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="brain-2.png" type="image/icon type">
+    <title>HotCrossBun Detector</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .container {
+            display: flex;
+        }
+
+        .square {
+            width: 350px;
+            height: 350px;
+            border: 3px solid #ccc;
+            margin: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            color: #848282;
+            background-size: cover; /* Set background size to cover */
+        }
+        
+        .square3 {
+            width: 500px;
+            height: 30px;
+            border: 2px solid #ccc;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            background-size: cover; /* Set background size to cover */
+        }
+        
+        #title {
+            font-size: 30px;
+            margin-bottom: 30px; /* Increased margin for spacing */
+        }
+    </style>
+</head>
+<body>
+    <div id="title">Hot Cross Bun Detector</div>
+    <div class="container">
+        <div class="square" id="square1">
+            Original MRI Picture
+        </div>
+        <div class="square" id="square2">
+            Result MRI Picture
+        </div>
+    </div>
+    <div class="square3" onclick="document.getElementById('upload-input').click();">
+        <p id="uploadt">Click here to Upload a MRI Picture</p>
+        <input type="file" id="upload-input" onchange="handleFileSelect(event)" style="display: none;">
+    </div>
+    <script>
+        async function handleFileSelect(event) {
+            const files = event.target.files;
+            const originalImage = files[0];
+            // Do something with the selected file(s)
+            console.log(files);
+        
+            const formData = new FormData();
+            formData.append('image_file', event.target.files[0]);
+            const response = await fetch("/detect", {
+                method: "POST",
+                body: formData
+            });
+            const boxes = await response.json();
+            
+            // Clear inner HTML of square1 and square2
+            document.getElementById('square1').innerHTML = "";
+            document.getElementById('square2').innerHTML = "";
+        
+            displayImage(originalImage, 'square1'); // Display original image on square1
+            draw_image_and_boxes(originalImage, boxes); // Display image and boxes on square2
+        }
+        function draw_image_and_boxes(file, boxes) {
+            const square2 = document.getElementById('square2');
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+                ctx.strokeStyle = "#00FF00";
+                ctx.lineWidth = 3;
+                ctx.font = "18px serif";
+                boxes.forEach(([x1, y1, x2, y2, label]) => {
+                    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                    ctx.fillStyle = "#00ff00";
+                    const width = ctx.measureText(label).width;
+                    ctx.fillRect(x1, y1, width + 10, 25);
+                    ctx.fillStyle = "#000000";
+                    ctx.fillText(label, x1, y1 + 18);
+                });
+        
+                square2.style.backgroundImage = `url(${canvas.toDataURL()})`; // Display canvas as background
+            };
+        }
+        function displayImage(image, squareId) {
+            const square = document.getElementById(squareId);
+            square.style.backgroundImage = `url(${URL.createObjectURL(image)})`;
+        }
+    </script>
+</body>
+</html>
